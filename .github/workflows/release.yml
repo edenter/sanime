@@ -40,35 +40,21 @@ jobs:
             exit 1
           fi
 
-      - name: Calculate new SHA256 hash
-        id: hash_new
-        run: echo "sha256=$(sha256sum anime_tvdb_ids.json | cut -d' ' -f1)" >> $GITHUB_OUTPUT
-
-      - name: Get SHA256 from latest release
-        id: hash_old
+      - name: Commit and push if changed
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Fetches the body of the latest release and extracts the SHA256 hash.
-          # If no release is found or no hash is in the body, it defaults to "none".
-          LATEST_RELEASE_BODY=$(gh release view --json body -q .body || echo "")
-          OLD_SHA=$(echo "$LATEST_RELEASE_BODY" | grep -oP 'SHA256: \K[a-f0-9]{64}' || echo "none")
-          echo "sha256=$OLD_SHA" >> $GITHUB_OUTPUT
-
-      - name: Compare hashes
-        id: compare
-        run: |
-          echo "New hash: ${{ steps.hash_new.outputs.sha256 }}"
-          echo "Old hash: ${{ steps.hash_old.outputs.sha256 }}"
-          if [ "${{ steps.hash_new.outputs.sha256 }}" == "${{ steps.hash_old.outputs.sha256 }}" ]; then
-            echo "Hashes are the same. No new release needed."
+          # Configure git for the bot
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Stage the generated file
+          git add anime_tvdb_ids.json
+          
+          # Commit and push if there are any changes
+          if ! git diff --staged --quiet; then
+            git commit -m "Update anime list for $(date -u +'%Y-%m-%d')"
+            git push
           else
-            echo "Hashes are different. Creating a new release."
-            TAG_NAME=$(date +'%Y-%m-%d-%H%M%S')
-            gh release create "$TAG_NAME" \
-              --title "Anime List Update $TAG_NAME" \
-              --notes "SHA256: ${{ steps.hash_new.outputs.sha256 }}" \
-              "anime_tvdb_ids.json"
+            echo "No changes to commit. The anime list is up-to-date."
           fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
