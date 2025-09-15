@@ -11,7 +11,7 @@ def get_anime_with_tvdb_ids():
     # This is a large file, so we fetch it only once.
     try:
         print("Fetching anime ID mapping from GitHub...")
-        response_github = requests.get('https://raw.githubusercontent.com/Fribb/anime-lists/refs/heads/master/anime-list-full.json')
+        response_github = requests.get('https://cdn.jsdelivr.net/gh/Fribb/anime-lists@master/anime-list-full.json')
         # Raise an HTTPError if the HTTP request returned an unsuccessful status code
         response_github.raise_for_status()
         github_data = response_github.json()
@@ -55,11 +55,15 @@ def get_anime_with_tvdb_ids():
                 if item.get('type') in {'TV', 'OVA', 'ONA'}
             )
 
-            # Further filter by score > 7.0 or members > 80,000
-            # Note: The original JS had a filter for "Rx - Hentai", but the first
-            # filter by type already excludes it, so it's not needed here.
-            filtered_by_score = (
+            # Filter out adult content
+            filtered_by_rating = (
                 item for item in filtered_by_type
+                if item.get('rating') != 'Rx - Hentai'
+            )
+
+            # Further filter by score > 7.0 or members > 80,000
+            filtered_by_score = (
+                item for item in filtered_by_rating
                 if (item.get('score') or 0) > 7.0 or (item.get('members') or 0) > 80000
             )
 
