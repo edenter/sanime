@@ -27,7 +27,7 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Run script to generate JSON
-        run: python sanime/main.py
+        run: python main.py
 
       - name: Check if file was generated
         id: check_file
