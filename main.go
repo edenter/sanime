@@ -53,7 +53,7 @@ func fetchJSON(url string, target interface{}) error {
 		resp.Body.Close()
 
 		if resp.StatusCode == 429 {
-			wait := time.Duration(5*(i+1)) * time.Second
+			wait := time.Duration(1*(i+1)) * time.Second
 			fmt.Printf("Rate limited on %s. Waiting %v...\n", url, wait)
 			time.Sleep(wait)
 			continue
@@ -109,7 +109,7 @@ func main() {
 
 	// Fetch remaining pages sequentially
 	if firstPage.Pagination.HasNextPage && lastPage > 1 {
-		fmt.Printf("Fetching remaining %d pages sequentially (respecting 3 req/sec limit)...\n", lastPage-1)
+		fmt.Printf("Fetching remaining %d pages sequentially (respecting rate limit)...\n", lastPage-1)
 		for page := 2; page <= lastPage; page++ {
 			time.Sleep(500 * time.Millisecond)
 			var pageData JikanResponse
