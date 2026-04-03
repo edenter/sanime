@@ -14,10 +14,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
           cache: 'pip'
@@ -29,17 +29,6 @@ jobs:
 
       - name: Run script to generate JSON
         run: python main.py
-
-      - name: Check if file was generated
-        id: check_file
-        run: |
-          if [ -f anime_tvdb_ids.json ]; then
-            echo "file_exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "file_exists=false" >> $GITHUB_OUTPUT
-            echo "JSON file not found. Exiting."
-            exit 1
-          fi
 
       - name: Commit and push if changed
         env:

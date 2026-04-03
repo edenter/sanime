@@ -26,34 +26,28 @@ async def get_anime_with_tvdb_ids():
     corresponding TheTVDB IDs from an external mapping file.
     """
     async with aiohttp.ClientSession() as session:
-        # --- Step 1: Fetch and prepare the ID mapping data from GitHub ---
-        print("Fetching anime ID mapping from GitHub...")
-        github_data = await fetch_json(session, 'https://cdn.jsdelivr.net/gh/Fribb/anime-lists@master/anime-list-full.json')
-        
+        # Fetch ID mapping and first Jikan page concurrently
+        print("Fetching anime ID mapping and first page concurrently...")
+        github_data, first_page = await asyncio.gather(
+            fetch_json(session, 'https://cdn.jsdelivr.net/gh/Fribb/anime-lists@master/anime-list-full.json'),
+            fetch_json(session, 'https://api.jikan.moe/v4/seasons/now?page=1')
+        )
+
         if not github_data:
             print("Failed to fetch ID mapping.")
             return []
-            
-        github_map = {}
-        for item in github_data:
-            mal_id = item.get('mal_id')
-            tvdb_id = item.get('tvdb_id')
-            if mal_id and tvdb_id is not None:
-                github_map[mal_id] = tvdb_id
+
+        github_map = {item['mal_id']: item['tvdb_id'] for item in github_data if item.get('mal_id') and item.get('tvdb_id') is not None}
+        del github_data
         print(f"Successfully created ID mapping for {len(github_map)} anime.")
 
-        # --- Step 2: Fetch the first page to get pagination info ---
-        print("Fetching page 1 from Jikan API...")
-        first_page = await fetch_json(session, 'https://api.jikan.moe/v4/seasons/now?page=1')
         if not first_page:
             return []
-            
+
         jikan_pages = [first_page]
-        has_next = first_page.get('pagination', {}).get('has_next_page', False)
         last_page = first_page.get('pagination', {}).get('last_visible_page', 1)
 
-        # --- Fetch remaining pages sequentially but fast to avoid rate limits ---
-        if has_next and last_page > 1:
+        if last_page > 1:
             print(f"Fetching remaining {last_page - 1} pages sequentially (respecting 3 req/sec limit)...")
             
             for page in range(2, last_page + 1):
@@ -62,7 +56,6 @@ async def get_anime_with_tvdb_ids():
                 if page_data:
                     jikan_pages.append(page_data)
 
-        # --- Step 3: Filter the data from Jikan ---
         result = []
         for page_data in jikan_pages:
             for item in page_data.get('data', []):
