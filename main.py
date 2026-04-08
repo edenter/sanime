@@ -25,7 +25,8 @@ async def get_anime_with_tvdb_ids():
     Fetches current season anime from Jikan, filters them, and finds their
     corresponding TheTVDB IDs from an external mapping file.
     """
-    async with aiohttp.ClientSession() as session:
+    timeout = aiohttp.ClientTimeout(total=30, connect=10)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
         # Fetch ID mapping and first Jikan page concurrently
         print("Fetching anime ID mapping and first page concurrently...")
         github_data, first_page = await asyncio.gather(
@@ -45,7 +46,10 @@ async def get_anime_with_tvdb_ids():
             return []
 
         jikan_pages = [first_page]
-        last_page = first_page.get('pagination', {}).get('last_visible_page', 1)
+        raw_last_page = first_page.get('pagination', {}).get('last_visible_page', 1)
+        last_page = min(raw_last_page, 20)
+        if raw_last_page > 20:
+            print(f"Warning: API reports {raw_last_page} pages, capping at 20.")
 
         if last_page > 1:
             print(f"Fetching remaining {last_page - 1} pages sequentially (respecting 3 req/sec limit)...")
@@ -77,9 +81,9 @@ if __name__ == '__main__':
     if sys.platform == 'win32':
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         
-    start_time = time.time()
+    start_time = time.monotonic()
     final_results = asyncio.run(get_anime_with_tvdb_ids())
-    print(f"\nCompleted in {time.time() - start_time:.2f} seconds")
+    print(f"\nCompleted in {time.monotonic() - start_time:.2f} seconds")
     
     print("\n--- Final Results ---")
     print(f"Found {len(final_results)} matching anime.")
