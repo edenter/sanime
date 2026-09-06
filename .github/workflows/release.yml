@@ -48,3 +48,18 @@ jobs:
           else
             echo "No changes to commit. The anime list is up-to-date."
           fi
+
+      - name: Heartbeat commit if repo has been quiet
+        # GitHub disables scheduled workflows in public repos after 60 days
+        # without repository activity. Mid-season lulls can exceed that, so
+        # make an empty commit once the last commit is older than 45 days.
+        run: |
+          last=$(git log -1 --format=%ct)
+          age=$(( ( $(date +%s) - last ) / 86400 ))
+          echo "Last commit is ${age} days old."
+          if [ "$age" -ge 45 ]; then
+            git commit --allow-empty -m "Heartbeat: keep scheduled workflow active"
+            git push
+          else
+            echo "No heartbeat needed."
+          fi

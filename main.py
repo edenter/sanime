@@ -61,6 +61,7 @@ async def get_anime_with_tvdb_ids():
                     jikan_pages.append(page_data)
 
         result = []
+        seen_tvdb_ids = set()
         for page_data in jikan_pages:
             for item in page_data.get('data', []):
                 if item.get('type') not in {'TV', 'OVA', 'ONA'}:
@@ -70,7 +71,8 @@ async def get_anime_with_tvdb_ids():
                 if (item.get('score') or 0) > 7.0 or (item.get('members') or 0) > 80000:
                     mal_id = item.get('mal_id')
                     matched_tvdb_id = github_map.get(mal_id)
-                    if matched_tvdb_id:
+                    if matched_tvdb_id and matched_tvdb_id not in seen_tvdb_ids:
+                        seen_tvdb_ids.add(matched_tvdb_id)
                         result.append({'tvdbId': matched_tvdb_id})
 
         return result
